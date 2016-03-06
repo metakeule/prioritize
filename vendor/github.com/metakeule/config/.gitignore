@@ -1,0 +1,21 @@
+_obj
+[568vq].out
+_cgo_gotypes.go
+*.prof
+cover.out
+_testmain.go
+*.exe
+_cgo_export.*
+# Architecture specific extensions/prefixes
+# Folders
+*.a
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.cgo2.c
+*.so
+*.[568vq]
+_test
+*.test
+*.o
+*.cgo1.go
+_cgo_defun.c
+.config
