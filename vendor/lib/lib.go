@@ -53,19 +53,30 @@ func (j *JSONStore) Save() error {
 	j.mx.Lock()
 	defer j.mx.Unlock()
 	if s, is := j.Writer.(io.Seeker); is {
-		s.Seek(0, 0)
+		_, err := s.Seek(0, 0)
+		if err != nil {
+			return err
+		}
 		b, err := json.MarshalIndent(j, "", "    ")
 		if err != nil {
 			return err
 		}
-		if size, err := j.Writer.Write(b); err != nil {
+
+		if size, err := j.Writer.Write(b); err != nil && err != io.EOF {
+			// fmt.Printf("write error: %s\n", err.Error())
 			return err
 		} else {
 			if t, is := j.Writer.(interface {
-				Truncate(int)
+				Truncate(int64) error
 			}); is {
-				t.Truncate(size)
+				t.Truncate(int64(size))
 			}
+		}
+
+		if sy, is := j.Writer.(interface {
+			Sync() error
+		}); is {
+			sy.Sync()
 		}
 		return nil
 	}

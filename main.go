@@ -62,11 +62,13 @@ steps:
 			}
 		case 5:
 			defer file.Close()
-			store := lib.NewJSONStore()
+			store = lib.NewJSONStore()
 			store.Reader = file
 			store.Writer = file
 			if !isNew {
 				err = store.Load()
+			} else {
+				err = store.Save()
 			}
 			defer store.Save()
 		case 6:
