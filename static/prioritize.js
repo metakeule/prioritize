@@ -14,33 +14,9 @@
 
  setCanvasSize(1);
 
-/*
-  // create an array with nodes
-  var nodes = new vis.DataSet([
-    {id: "a", "label": "universalsprache", "value": 0, "title": "ideen, IT"},
-    {id: "b", "label": "künstliche intelligenz", "value": 1, "title": "ideen, IT"},
-    {id: "c", "label": "der Riese", "value": 2, "title": "zufällig"},
-    {id: "d", "label": "unverbunden", "value": 0},
-    {id: "e", "label": "ein bisschen", "value": 1, "title": "zufällig"}
-  ]);
-
-  // create an array with edges
-  var edges = new vis.DataSet([
-    {from: "a", to: "c"},
-    {from: "a", to: "b"},
-    {from: "b", to: "c"},
-    {from: "b", to: "e"}
-  ]);
-  */
-
   // create a network
   var container = document.getElementById('mynetwork');
- /*
-  var data = {
-    nodes: nodes,
-    edges: edges
-  };
-  */
+
   /* locales: locales, */
   var options = {
     autoResize: true,
@@ -71,9 +47,20 @@
     },
     layout: {
       hierarchical: {
-        enabled: true,
+        enabled: false,
         direction: "DU",
-        sortMethod: "directed"
+        sortMethod: "directed",
+        nodeSpacing: 200
+      }
+    },
+    physics: {
+      enable: false,
+      barnesHut: {
+        avoidOverlap: 0.2,
+        springConstant: 0.9,
+        springLength: 200,
+        damping: 1,
+        gravitationalConstant: -10000
       }
     },
     manipulation: {
@@ -154,9 +141,9 @@
             getData(); }
         });
       },
-      /*
-      editEdge: function...
-      */
+      
+      editEdge: false,
+      
       editNode: function(nodeData,callback) {
         var newname = prompt("Enter new name for node:", nodeData.label);
         if (newname && newname != nodeData.label) {
@@ -179,7 +166,7 @@
       }
     },
     interaction: {
-      dragNodes: false,
+      dragNodes: true,
       keyboard: {
         enabled: true,
         bindToWindow: true
