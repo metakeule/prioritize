@@ -660,9 +660,12 @@ b3[color=red fontcolor=white fontsize=18,label="roter Baron\n(tag1  tag 2)"]
 type VisNode struct {
 	ID    int    `json:"id"`
 	Label string `json:"label"`
-	Value int    `json:"value,omitempty"`
-	Title string `json:"title,omitempty"`
-	Group string `json:"group,omitempty"`
+	//Value int    `json:"value,omitempty"`
+	Value int `json:"value"`
+	//Title string `json:"title,omitempty"`
+	Title string `json:"title"`
+	//Group string `json:"group,omitempty"`
+	Group string `json:"group"`
 }
 
 // edge for visjs.org

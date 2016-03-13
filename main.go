@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/metakeule/config"
 	"github.com/srtkkou/zgok"
@@ -14,24 +15,30 @@ import (
 )
 
 var (
-	cfg     = config.MustNew("prioritize", "0.1", "a webbased tool to help you prioritize based on dependencies")
-	argPort = cfg.NewInt32("port", "port on which the webserver runs", config.Default(int32(8080)), config.Shortflag('p'))
-	argHost = cfg.NewString("host", "hostname or ip address of the webserver", config.Default("localhost"), config.Shortflag('h'))
-	argFile = cfg.NewString("file", "file that acts as data store (json)", config.Default("prioritize.json"), config.Shortflag('f'))
+	args     = config.MustNew("prioritize", "0.1", "a webbased tool to help you prioritize based on dependencies")
+	argPort  = args.NewInt32("port", "port on which the webserver runs", config.Default(int32(8080)), config.Shortflag('p'))
+	argHost  = args.NewString("host", "hostname or ip address of the webserver", config.Default("localhost"), config.Shortflag('h'))
+	argFile  = args.NewString("file", "file that acts as data store (json)", config.Default("prioritize.json"), config.Shortflag('f'))
+	argDebug = args.NewBool("debug", "turn on debugging", config.Default(false))
 )
+
+type setup struct {
+	Host         string
+	Port         int
+	Wd           string
+	SelfBinName  string
+	App          string
+	CreatingFile bool
+	zfs          zgok.FileSystem
+	file         *os.File
+	store        *lib.JSONStore
+}
 
 func main() {
 
 	var (
-		err         error
-		selfbinname string
-		zfs         zgok.FileSystem
-		file        *os.File
-		isNew       bool
-		store       *lib.JSONStore
-		port        int
-		host        string
-		wd          string
+		err error
+		set setup
 	)
 
 steps:
@@ -40,45 +47,53 @@ steps:
 		default:
 			break steps
 		case 0:
-			err = cfg.Run()
+			err = args.Run()
 		case 1:
-			port = int(argPort.Get())
-			host = argHost.Get()
-			wd, err = os.Getwd()
+			set.Port = int(argPort.Get())
+			set.Host = argHost.Get()
+			set.Wd, err = os.Getwd()
 		case 2:
-			selfbinname = os.Args[0]
-			_, err = os.Stat(selfbinname)
+			set.SelfBinName = os.Args[0]
+			_, err = os.Stat(set.SelfBinName)
 			if err != nil && os.IsNotExist(err) {
-				selfbinname, err = which(selfbinname)
+				set.SelfBinName, err = which(set.SelfBinName)
 			}
 		case 3:
-			zfs, err = zgok.RestoreFileSystem(selfbinname)
+			set.zfs, err = zgok.RestoreFileSystem(set.SelfBinName)
 		case 4:
-			fpath := filepath.Join(wd, argFile.Get())
-			file, err = os.OpenFile(fpath, os.O_RDWR, 0644)
+			fpath := filepath.Join(set.Wd, argFile.Get())
+			set.file, err = os.OpenFile(fpath, os.O_RDWR, 0644)
 			if err != nil && os.IsNotExist(err) {
-				isNew = true
-				file, err = os.Create(fpath)
+				set.CreatingFile = true
+				set.file, err = os.Create(fpath)
 			}
 		case 5:
-			defer file.Close()
-			store = lib.NewJSONStore()
-			store.Reader = file
-			store.Writer = file
-			if !isNew {
-				err = store.Load()
+			defer set.file.Close()
+			set.store = lib.NewJSONStore()
+			set.store.Reader = set.file
+			set.store.Writer = set.file
+			if !set.CreatingFile {
+				err = set.store.Load()
 			} else {
-				err = store.Save()
+				err = set.store.Save()
 			}
-			defer store.Save()
-		case 6:
-			serve(getAppname(wd), store, zfs, port, host)
+			defer set.store.Save()
+			set.App = getAppname(set.Wd)
 		}
 	}
+
+	if argDebug.Get() {
+		if b, e := json.MarshalIndent(set, "", "  "); e == nil {
+			os.Stdout.Write(b)
+		}
+	}
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(1)
 	}
+
+	set.serve()
 	os.Exit(0)
 }
 
@@ -99,11 +114,11 @@ func which(name string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func serve(appName string, store *lib.JSONStore, zfs zgok.FileSystem, port int, host string) {
-	server := webserver.NewStoreServer(appName, store)
+func (set *setup) serve() {
+	server := webserver.NewStoreServer(set.App, set.store)
 
 	// assetServer := zfs.FileServer("static")
-	http.Handle("/static/", http.StripPrefix("/static/", zfs.FileServer("static")))
+	http.Handle("/static/", http.StripPrefix("/static/", set.zfs.FileServer("static")))
 
 	// http.Handle("/static/", http.StripPrefix("/static", http.FileServer(http.Dir(staticRoot()))))
 	http.HandleFunc("/app/name", server.AppName)
@@ -121,10 +136,9 @@ func serve(appName string, store *lib.JSONStore, zfs zgok.FileSystem, port int, 
 	// http.HandleFunc("/tag/put", server.PutTag)
 	http.HandleFunc("/", serveIndex)
 
-	hoststr := fmt.Sprintf("%s:%d", host, port)
-	fmt.Fprintf(os.Stdout, "listening on http://%s\n", hoststr)
+	hoststr := fmt.Sprintf("%s:%d", set.Host, set.Port)
+	fmt.Fprintf(os.Stdout, "\nlistening on http://%s\n", hoststr)
 	http.ListenAndServe(hoststr, nil)
-
 }
 
 func serveIndex(w http.ResponseWriter, req *http.Request) {

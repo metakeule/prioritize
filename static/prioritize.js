@@ -33,26 +33,35 @@
       arrows: {
         to: {
           enabled: true,
-          scaleFactor: 1
+          scaleFactor: 0.9
         }
-      }
+      },
+      physics: false
     },
     nodes: {
       shape: "box",
       scaling: {
         label: {
-          enabled: true
+          enabled: false
         }
-      }
+      },
+      physics: true
     },
     layout: {
       hierarchical: {
-        enabled: false,
-        direction: "DU",
-        sortMethod: "directed",
-        nodeSpacing: 200
+        enabled: true,
+        direction: "RL",
+         sortMethod: "hubsize", 
+        blockShifting: true,
+         /*, 
+         sortMethod: "directed" ,
+        nodeSpacing: 20,
+        /* ,
+        treeSpacing: 20000 */
+        edgeMinimization: true
       }
     },
+    /*
     physics: {
       enable: false,
       barnesHut: {
@@ -63,6 +72,7 @@
         gravitationalConstant: -10000
       }
     },
+    */
     manipulation: {
       enabled: true,
       initiallyActive: true,
@@ -184,7 +194,10 @@
         } 
       },
       group2:{
-        color: "green"
+        color: "green",
+        font: {
+          color: "white"
+        }
       },
       group3:{
         color: "yellow"
